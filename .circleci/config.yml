@@ -1,5 +1,18 @@
 version: 2.1
 jobs:
+  master-integration:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: merge with master
+          command: |
+            git checkout -b master
+            git merge --ff-only $CIRCLE_BRANCH
+            git push -u origin master
+
+
   build:
     docker:
       - image: circleci/python:3.6
@@ -63,6 +76,14 @@ jobs:
       
 workflows:
   version: 2
+  intergrate-master:
+    jobs:
+      - master-integration:
+          filters:
+            branches:
+              only:
+                - ready/*
+
 
   build-test-deploy:
     jobs:
@@ -70,18 +91,18 @@ workflows:
           filters:
             branches:
               only:
-                - feature/ci-cd
+                - master
       - deploy:
           filters:
             branches:
               only:
-                - feature/ci-cd
+                - master
           requires:
             - build
       - test:
           filters:
             branches:
               only:
-                - feature/ci-cd
+                - master
           requires:
             - deploy
