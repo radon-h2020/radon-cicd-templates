@@ -12,8 +12,6 @@
 
 ## Contents
 
-A thumbnail app serves as a demo application for validating the CI/CD pipelines
+Selection of CI/CD pipelines from Jenkins, CircleCI.
 
-pipeline examples can be found in:
-
-./circleci/config
+Create Issues for new providers.
