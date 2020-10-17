@@ -12,6 +12,13 @@
 
 ## Contents
 
-Selection of CI/CD pipelines from Jenkins, CircleCI.
+Selection of CI/CD pipelines from Jenkins and CircleCI.
 
-Create Issues for new providers.
+Snippets of Pipelines are divided into different folders based on tool name.
+
+
+## Contribution
+
+Create Issues for new CI providers.
+
+
