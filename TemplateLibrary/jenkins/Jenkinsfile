@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
+        TEMPLATE_LIBRARY_USER = credentials('template-lib-user')
+        TEMPLATE_LIBRARY_PASS = credentials('template-lib-pass')
+    }
+    stages {
+        stage('Fetch and unpack template') {
+            steps {
+                sh '''
+                    echo $csar_reference
+                    BEARER_TOKEN=$(curl -X POST https://template-library-radon.xlab.si/api/auth/login -H "accept: */*" -H "Content-Type: application/json" -d "{\"username\":\"$TEMPLATE_LIBRARY_USER\",\"password\":\"$TEMPLATE_LIBRARY_USER\"}" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+                    curl -X GET https://template-library-radon.xlab.si/api/versions/template_file/$csar_reference -H "accept: application/octet-stream" -H "Authorization: Bearer $BEARER_TOKEN" > blueprint.tosca
+                '''
+            }
+        }
+
+        stage('Deploy resources') {
+            environment {
+                DEPLOY_FILE = '_definitions/radonlegacyblueprints__ImageResize.tosca'
+            }
+            steps {
+                sh '''
+                    pip3 install boto3 ansible opera --user
+                    mkdir -p /tmp && cp nodetypes/radon.nodes.legacy/AwsCreateRole/files/policy/policy.json /tmp/policy.json
+                    PATH="$(python3 -m site --user-base)/bin:${PATH}"
+                    opera deploy $DEPLOY_FILE
+                '''
+            }
+        }
+
+        stage('Test functionality') {
+            environment {
+                IMAGE = 'setter.jpg'
+            }
+            steps {
+                '''
+                    echo Install awscli
+                    pip install awscli --user
+                    echo Upload image
+                    curl https://www.dogsnsw.org.au/media/img/BrowseAllBreed//Irish-Setter.jpg > $IMAGE
+                    PATH="$(python3 -m site --user-base)/bin:${PATH}"
+                    aws s3 mv $IMAGE s3://radon-particles
+                    PATH="$(python3 -m site --user-base)/bin:${PATH}"
+                    echo "$(aws s3 ls radon-particles-resized)"
+                '''
+            }
+        }
+    }
+}
