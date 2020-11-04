@@ -16,19 +16,14 @@ pipeline {
             environment {
                 DEPLOY_FILE = 'todolist-dev.csar'
                 DPT_DOCKER_NAME = 'RadonDPT'
-                DPT_FILES_PATH = '{"path":"/tmp/radon/container/main.cdl"}'
             }
             steps {
-                sh 'echo Start VT container and perform verify test...'
-                sh 'unzip -o ${DEPLOY_FILE}'
-                sh 'mkdir -p $PWD/tmp/radon && cp -r todolist-dev.csar $PWD/tmp/radon'
-                sh 'git clone https://github.com/radon-h2020/radon-defect-prediction-api'
-                sh 'cd radon-defect-prediction-api && docker build -t radon-dp:latest .'
-                sh 'docker run --name "${DPT_DOCKER_NAME}" --rm -d -p 5000:5000 -v $PWD/tmp/radon:/tmp/radon/container radon-dp:latest'
-                sh 'sleep 5'
-                sh 'docker ps'
-                sh 'curl -X POST "http://localhost:5000/api/classification/classify" -H  "accept: */*" -H  "Content-Type: plain/text" -d "- host: all"'
-                sh 'docker stop ${DPT_DOCKER_NAME}'
+                sh 'echo Start DPT container and perform test...'
+                sh 'mkdir -p $PWD/radon-dpt && cp -r todolist-dev.csar $PWD/radon-dpt'
+                sh 'git clone https://github.com/radon-h2020/radon-defect-prediction-cli.git'
+                sh 'cd radon-defect-prediction-cli && pip3 install -r requirements.txt --user && pip3 install . --user'
+                sh 'PATH="$(python3 -m site --user-base)/bin:${PATH}" && radon-defect-predictor download-model tosca github AlexSpart/radon-csars && radon-defect-predictor predict tosca $DEPLOY_FILE && python --version '
+                sh 'cat radondp_predictions.json'
             }
         }
         stage('Test functionality') {
@@ -47,4 +42,6 @@ pipeline {
         }
     }
 }
+
+
 
