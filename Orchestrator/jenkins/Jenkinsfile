@@ -5,30 +5,17 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
     }
     stages {
-        stage('Install dependacies') {
-            steps {
-                withEnv(["HOME=${env.WORKSPACE}"]) {
-                    sh 'echo install any dependancies..'
-                }
-            }
-        }
-        stage('Opera Deploy') {
+        stage('Opera deploy') {
             environment {
-                DEPLOY_FILE = 'todolist-dev.csar'
-                OPERA_DOCKER_NAME = 'prqCont'
+                DEPLOY_FILE = '_definitions/<file_name>.tosca'
             }
             steps {
-                withEnv(["HOME=${env.WORKSPACE}"]) {  
-                    sh 'echo Creating image opera-deploy...'
-                    sh 'docker build --tag opera-deploy .'
-                    sh 'echo Starting container prqCont...'
-                    sh 'mkdir -p $PWD/tmp/radon && cp -r todolist-dev.csar $PWD/tmp/radon'
-                    sh 'docker run --name ${OPERA_DOCKER_NAME} --rm -d -p 18080:18080 -v $PWD/tmp/radon:/tmp/radon/container -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" -e "CTT_FAAS_ENABLED=1" opera-deploy'
-                    sh 'sleep 5'
-                    sh 'docker exec ${OPERA_DOCKER_NAME} sh -c "cd /tmp/radon/container && opera init todolist-dev.csar && opera deploy "'
-                    sh 'docker stop $OPERA_DOCKER_NAME'
-                }
-    
+                sh '''
+                    pip3 install boto3 ansible opera --user
+                    mkdir -p /tmp && cp nodetypes/radon.nodes.legacy/AwsCreateRole/files/policy/policy.json /tmp/policy.json
+                    PATH="$(python3 -m site --user-base)/bin:${PATH}"
+                    opera deploy $DEPLOY_FILE
+                '''
             }
         }
     }
@@ -38,3 +25,5 @@ pipeline {
         }
     }
 }
+
+
