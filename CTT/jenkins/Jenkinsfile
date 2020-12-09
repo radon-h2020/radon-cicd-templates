@@ -1,0 +1,27 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
+    }
+    stages {
+        stage('Continuous Testing') {
+            environment {
+                DEPLOY_FILE = '<name_of_tosca.tosca>'
+            }
+            steps {
+                //Please add example usage of the ctt cli
+                sh '''
+                    
+                '''
+            }
+        }
+    }
+    post { 
+        always { 
+            cleanWs()
+        }
+    }
+}
+
+
