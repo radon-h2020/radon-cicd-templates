@@ -1,0 +1,1 @@
+For further information about the use, see https://continuous-testing-tool.readthedocs.io/en/latest/
