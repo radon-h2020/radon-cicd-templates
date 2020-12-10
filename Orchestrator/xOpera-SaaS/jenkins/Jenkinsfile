@@ -1,0 +1,27 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
+    }
+    stages {
+        stage('Opera deploy') {
+            environment {
+                DEPLOY_FILE = '<name_of_csar.csar>'
+            }
+            steps {
+               
+                sh '''
+                 
+                '''
+            }
+        }
+    }
+    post { 
+        always { 
+            cleanWs()
+        }
+    }
+}
+
+
