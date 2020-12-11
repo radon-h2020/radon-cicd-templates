@@ -7,15 +7,12 @@ pipeline {
     stages {
         stage('Opera deploy') {
             environment {
-                DEPLOY_FILE = '<name_of_tosca.tosca>'
+                DEPLOY_FILE = '<name_of_csar.csar>'
             }
             steps {
-                // install the necessary dependencies as pip packages
-                // unwrap the csar and deploy the file.
+               
                 sh '''
-                    pip3 install boto3 ansible opera --user
-                    opera init $DEPLOY_FILE
-                    opera deploy
+                 
                 '''
             }
         }
