@@ -5,11 +5,13 @@ pipeline {
         stage('Run DPT') {
             environment {
                 DEPLOY_FILE = 'cloudstash.csar'
-                DPT_DOCKER_NAME = 'radon-dp:latest'
+                DPT_DOCKER_NAME = 'radonconsortium/radon-dp:latest'
                 GITHUB_REPO = 'your github repo containing csar'
             }
             steps {
-                // Create temporary 
+                // Pull radonconsortium/radon-dp:latest image from Dockerhub
+                sh 'docker pull $DPT_DOCKER_NAME'
+                // Create temporary
                 sh 'mkdir -p tmp/radon-dp-volume'
                 // Download a suitable model 
                 sh 'docker run -v tmp/radon-dp-volume:/app $DPT_DOCKER_NAME radon-defect-predictor download-model tosca github $GITHUB_REPO'
