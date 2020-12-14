@@ -4,21 +4,24 @@ pipeline {
         
         stage('Run DPT') {
             environment {
-                DEPLOY_FILE = 'cloudstash.csar'
-                DPT_DOCKER_NAME = 'radonconsortium/radon-dp:latest'
-                GITHUB_REPO = 'your github repo containing csar'
+                // The deployable csar file as exported from Radon-GMT
+                DEPLOY_FILE = '<<name_of_csar.csar>>'
+                // The user's Github/Gitlab remote repository in the form <namespace>/<repository> (e.g., radon-h2020/radon-defect-prediction-cli)
+                GITHUB_REPO = '<git_repo_containing_csar>' 
+                // The DPT docker image published in Dockerhub
+                DPT_DOCKER_IMAGE = 'radonconsortium/radon-dp'
             }
             steps {
                 // Pull radonconsortium/radon-dp:latest image from Dockerhub
-                sh 'docker pull $DPT_DOCKER_NAME'
+                sh 'docker pull $DPT_DOCKER_IMAGE'
                 // Create temporary
                 sh 'mkdir -p tmp/radon-dp-volume'
                 // Download a suitable model 
-                sh 'docker run -v tmp/radon-dp-volume:/app $DPT_DOCKER_NAME radon-defect-predictor download-model tosca github $GITHUB_REPO'
+                sh 'docker run -v $PWD/tmp/radon-dp-volume:/app $DPT_DOCKER_IMAGE radon-defect-predictor download-model tosca github $GITHUB_REPO'
                 // Move CSAR into tmp library. This is colocated with the fetched radondp_model.joblib
-                sh 'cp $DEPLOY_FILE tmp/radon-dp-volume .'
+                sh 'cp $DEPLOY_FILE tmp/radon-dp-volume'
                 // Run predict
-                sh 'docker run -v tmp/radon-dp-volume:/app $DPT_DOCKER_NAME radon-defect-predictor predict tosca $DEPLOY_FILE'
+                sh 'docker run -v $PWD/tmp/radon-dp-volume:/app $DPT_DOCKER_IMAGE radon-defect-predictor predict tosca $DEPLOY_FILE'
                 // Results are available at:
                 sh 'cat tmp/radon-dp-volume/radondp_predictions.json'
             }
