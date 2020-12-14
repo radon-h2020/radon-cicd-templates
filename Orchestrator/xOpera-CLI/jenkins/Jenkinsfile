@@ -7,6 +7,7 @@ pipeline {
     stages {
         stage('Opera deploy') {
             environment {
+                // The deployable csar file as exported from Radon-GMT
                 DEPLOY_FILE = '<name_of_csar.csar>'
             }
              steps {
