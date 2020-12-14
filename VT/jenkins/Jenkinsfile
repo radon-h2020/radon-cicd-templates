@@ -14,9 +14,13 @@ pipeline {
         }
        stage('Run VT') {
             environment {
+                // The deployable csar file as exported from Radon-GMT
                 DEPLOY_FILE = '<name_of_csar.csar>'
+                // Specify the name of the container
                 VT_DOCKER_NAME = 'RadonVT'
+                // The DPT docker image published in Dockerhub 
                 VT_DOCKER_IMAGE = 'marklawimperial/verification-tool'
+                // The path to the main.cdl file inside the container
                 VT_FILES_PATH = '{"path":"/tmp/main.cdl"}'
             }
             steps {
