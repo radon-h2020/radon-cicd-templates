@@ -1,19 +1,32 @@
 pipeline {
     agent any
     environment {
+        //Template Library credentials. (Stored as secrets in Jenkins platform)
         TEMPLATE_LIBRARY_USER = credentials('template-lib-user')
         TEMPLATE_LIBRARY_PASS = credentials('template-lib-pass')
+        // The reference name used to store a blueprint in Template Library.  
+        csar_reference = '<TL_blueprint_name>'                          // **NOTE** Comment this line if triggering pipeline through IDE's "Trigger CI" button.
+        // The version used to store a blueprint in Template Library.
+        csar_version   = '<TL_blueprint_version>'                       // **NOTE** Comment this line if triggering pipeline through IDE's "Trigger CI" button.
     }
     stages {
-        stage('Fetch and unpack template') {
+        stage('Fetch blueprint from TL') {
             steps {
+                // Authenticate yourself using the environment variables TEMPLATE_LIBRARY_USER & TEMPLATE_LIBRARY_PASS 
+                // GET command to download the blueprint from Template Library. (Assuming the the user has access to the specified blueprint)
                 sh '''
                     echo $csar_reference
                     echo $csar_version
-                    BEARER_TOKEN=$(curl -X POST https://template-library-radon.xlab.si/api/auth/login -H "accept: */*" -H "Content-Type: application/json" -d "{\"username\":\"$TEMPLATE_LIBRARY_USER\",\"password\":\"$TEMPLATE_LIBRARY_USER\"}" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
-                    curl -X GET https://template-library-radon.xlab.si/api/templates/{template_name}/versions/{version}/files -H "accept: application/octet-stream" -H "Authorization: Bearer $BEARER_TOKEN" > blueprint.tosca
+                    
+                    BEARER_TOKEN=$(curl -X POST https://template-library-radon.xlab.si/api/auth/login -H "accept: */*" -H "Content-Type: application/json" -d "{\"username\":\"$TEMPLATE_LIBRARY_USER\",\"password\":\"$TEMPLATE_LIBRARY_PASS\"}" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+                    curl -X GET https://template-library-radon.xlab.si/api/templates/$csar_reference/versions/$csar_version/files -H "accept: application/octet-stream" -H "Authorization: Bearer $BEARER_TOKEN" --output blueprint
                 '''
             }
         }
     }
-}
+    post { 
+        always { 
+            cleanWs()
+        }
+    }
+}   
