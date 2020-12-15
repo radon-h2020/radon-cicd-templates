@@ -1,17 +1,6 @@
 pipeline {
     agent any
-    environment {
-        AWS_ACCESS_KEY_ID     = credentials('aws-id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
-    }
     stages {
-        stage('Install dependacies') {
-            steps {
-                withEnv(["HOME=${env.WORKSPACE}"]) {
-                    sh 'echo install any dependancies...'
-                }
-            }
-        }
        stage('Run VT') {
             environment {
                 // The deployable csar file as exported from Radon-GMT
