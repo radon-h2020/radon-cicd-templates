@@ -5,15 +5,39 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret')
     }
     stages {
-        stage('Continuous Testing') {
+        stage('Run CTT') {
             environment {
-                DEPLOY_FILE = '<name_of_tosca.tosca>'
+                // Specify the name of the container
+                CTT_DOCKER_NAME = 'RadonCTT'
+                // The DPT docker image published in Dockerhub 
+                CTT_DOCKER_IMAGE = 'radonconsortium/radon-ctt:latest'
+                // The path to the config file on jenkins ws
+                CTT_CONFIG_FILE_PATH = 'radon-ctt-cli-testing/ctt_config.yaml'
+                // URL of CTT API as defined in the docker command
+                CTT_SERVER_URL = 'http://localhost:18080/RadonCTT'
             }
             steps {
-                //Please add example usage of the ctt cli
+                // Use the secret file of Jenkins "prq-aws-ssh-key" to Create a variable named as "PRQ_AWS_SSH_KEY" 
+                withCredentials([file(credentialsId: "prq-aws-ssh-key", variable: "PRQ_AWS_SSH_KEY")]) {
+                                    //Initialize an empty file & copy the SSH key derived from the secret file.
+                                    sh 'mkdir $PWD/tmp && touch $PWD/tmp/awsec2.pem && cp -r $PRQ_AWS_SSH_KEY $PWD/tmp/awsec2.pem'
+                                }
+                // Pull the latest version of the CTT docker Image
+                sh 'docker pull $CTT_DOCKER_IMAGE'
+                // Run CTT server using docker
+                sh 'docker run -d --rm  --name $CTT_DOCKER_NAME -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e "CTT_FAAS_ENABLED=1" -e "OPERA_SSH_USER=ubuntu" -e "OPERA_SSH_IDENTITY_FILE=/tmp/aws-ec2" -p 18080:18080 -v $PWD/tmp/awsec2.pem:/tmp/aws-ec2 $CTT_DOCKER_IMAGE'
+                // Clone the radon-ctt-cli repo, install the requirements, execute the test and print the results
                 sh '''
-                    
-                '''
+                    git clone https://github.com/radon-h2020/radon-ctt-cli.git
+                    python3 -m venv .venv 
+                    . .venv/bin/activate 
+                    pip install -r radon-ctt-cli/requirements.txt
+                    python radon-ctt-cli/ctt_cli.py -u $CTT_SERVER_URL -c $CTT_CONFIG_FILE_PATH
+                    unzip /tmp/results.zip
+                    cat execution.json
+                    '''
+                // Stop docker container
+                sh 'docker stop $CTT_DOCKER_NAME'
             }
         }
     }
