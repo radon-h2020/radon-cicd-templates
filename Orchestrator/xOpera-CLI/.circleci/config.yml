@@ -1,0 +1,32 @@
+version: 2.1
+
+executors:
+  machine-executor:
+    machine:
+      image: ubuntu-2004:202101-01
+
+jobs:
+  opera_deploy:
+    executor: machine-executor
+    steps:
+      - checkout    
+      - run: 
+          environment:
+            # IMPORTANT: You should already have AWS credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY) saved as environment variables in CircleCI.
+            # The deployable csar file as exported from Radon-GMT
+            DEPLOY_FILE: "<name_of_csar.csar>"
+          name: Opera deploy  
+          command: |
+            echo "install the necessary dependencies as pip packages"
+            pip3 install ansible opera --user
+            PATH="$(python3 -m site --user-base)/bin:${PATH}"
+            echo ""
+            echo "unwrap the csar and deploy the file."
+            opera init ${DEPLOY_FILE}
+            opera deploy
+            echo ""
+    
+workflows:
+  cloudstash:
+    jobs:
+      - opera_deploy
