@@ -12,7 +12,7 @@ pipeline {
                 // The CTT docker image published in Dockerhub 
                 CTT_DOCKER_IMAGE = 'radonconsortium/radon-ctt:latest'
                 // The path to the config file on jenkins ws
-                CTT_CONFIG_FILE_PATH = '<name_of_ctt_config.yaml'
+                CTT_CONFIG_FILE_PATH = '<name_of_ctt_config.yaml>'
                 // URL of CTT API as defined in the docker command
                 CTT_SERVER_URL = 'http://localhost:18080/RadonCTT'
             }

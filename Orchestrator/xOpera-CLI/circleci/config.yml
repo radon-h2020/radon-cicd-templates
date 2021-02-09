@@ -20,11 +20,9 @@ jobs:
             echo "install the necessary dependencies as pip packages"
             pip3 install ansible opera --user
             PATH="$(python3 -m site --user-base)/bin:${PATH}"
-            echo ""
             echo "unwrap the csar and deploy the file."
             opera init ${DEPLOY_FILE}
             opera deploy
-            echo ""
     
 workflows:
   cloudstash:

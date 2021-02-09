@@ -1,108 +1,32 @@
 version: 2.1
+
+executors:
+  machine-executor:
+    machine:
+      image: ubuntu-2004:202101-01
+
 jobs:
-  master-integration:
-    docker:
-      - image: circleci/python:3.6
+  fetch_blueprint_from_TL:
+    executor: machine-executor
     steps:
-      - checkout
-      - run:
-          name: merge with master
+      - checkout    
+      - run: 
+          environment:
+            # IMPORTANT: Store Template Library credentials (TEMPLATE_LIBRARY_USER and TEMPLATE_LIBRARY_PASS) as environment variables in CircleCI before running the workflow.
+            # The reference name used to store a blueprint in Template Library.
+            csar_reference: "<TL_blueprint_name>"
+            # The version used to store a blueprint in Template Library.
+            csar_version: "<TL_blueprint_version>"
+          name: Fetch blueprint from TL  
           command: |
-            git checkout -b master
-            git merge --ff-only $CIRCLE_BRANCH
-            git push -u origin master
-
-
-  build:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - checkout
-      - run:
-          name: pack python folder
-          command: |
-            python3 -m venv venv
-            venv/bin/pip3 install -r requirements.txt
-            cd venv/lib/python3.6/site-packages
-            zip -r $OLDPWD/ImageResize.zip .
-            cd $OLDPWD
-            zip ImageResize.zip image_resize.py
-            mkdir /tmp/resources
-            cp playbooks/aws_role/policy.json /tmp/resources
-            cp ImageResize.zip /tmp/resources
-      - persist_to_workspace:
-          root: /tmp/resources
-          paths:
-            - policy.json
-            - ImageResize.zip
-
-  deploy:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/resources
-      - run:
-          name: install dependencies
-          command: |
-            sudo pip3 install boto3
-            sudo pip3 install git+https://github.com/ansible/ansible.git@devel
-            sudo pip3 install opera
-      - run:
-          name: deploy
-          command: |
-            opera deploy resize resize_service_opera.yml
-
-  test:
-    docker:
-      - image: circleci/python:3.7.2
-    environment:
-      IMAGE: setter.jpg
-    steps:
-      - run:
-          name: install dependencies
-          command: |
-            sudo pip3 install awscli
-      - run:
-          name: upload image to s3
-          command: |
-            curl https://www.dogsnsw.org.au/media/img/BrowseAllBreed//Irish-Setter.jpg > $IMAGE
-            aws s3 mv $IMAGE s3://radon-img3-naesheim
-      - run:
-          name: verify content
-          command: |
-            aws s3 ls radon-img3-naesheim-resized
-      
+            echo ${csar_reference}
+            echo ${csar_version}
+            # Authenticate yourself using the environment variables TEMPLATE_LIBRARY_USER & TEMPLATE_LIBRARY_PASS
+            BEARER_TOKEN="$(curl -X POST https://template-library-radon.xlab.si/api/auth/login -H "accept: */*" -H "Content-Type: application/json" -d "{\"username\":\"$TEMPLATE_LIBRARY_USER\",\"password\":\"$TEMPLATE_LIBRARY_PASS\"}" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")"
+            # GET command to download the blueprint from Template Library. (Assuming that the user has access to the specified blueprint)
+            curl -X GET https://template-library-radon.xlab.si/api/templates/$csar_reference/versions/$csar_version/files -H "accept: application/octet-stream" -H "Authorization: Bearer $BEARER_TOKEN" --output blueprint
+    
 workflows:
-  version: 2
-  intergrate-master:
+  cloudstash:
     jobs:
-      - master-integration:
-          filters:
-            branches:
-              only:
-                - ready/*
-
-
-  build-test-deploy:
-    jobs:
-      - build:
-          filters:
-            branches:
-              only:
-                - master
-      - deploy:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - build
-      - test:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - deploy
+      - fetch_blueprint_from_TL
