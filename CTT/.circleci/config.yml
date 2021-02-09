@@ -1,0 +1,59 @@
+version: 2.1
+
+executors:
+  machine-executor:
+    machine:
+      image: ubuntu-2004:202101-01
+
+jobs:
+  run_CTT:
+    executor: machine-executor
+    steps:
+      - checkout    
+      - run: 
+          environment:
+            # IMPORTANT: You should already have AWS credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY) saved as environment variables in CircleCI.
+            # Specify the name of the container
+            CTT_DOCKER_NAME: "RadonCTT"
+            # The CTT docker image published in Dockerhub
+            CTT_DOCKER_IMAGE: "radonconsortium/radon-ctt:latest"
+            # The path to the config file
+            CTT_CONFIG_FILE_PATH: "<ctt_config.yaml file>"
+            # URL of CTT API as defined in the docker command
+            CTT_SERVER_URL: "http://localhost:18080/RadonCTT"
+            # IMPORTANT: You should save PRQ_AWS_SSH_KEY environment variable in CircleCI before running the workflow.
+          name: Run CTT  
+          command: |
+            echo "Initialize an empty file & copy the SSH key"
+            mkdir -p tmp && touch tmp/awsec2.pem && echo $PRQ_AWS_SSH_KEY > tmp/awsec2.pem
+            echo ""
+            echo "Pull the latest version of the CTT docker Image"
+            docker pull ${CTT_DOCKER_IMAGE}
+            echo ""
+            echo "Run CTT server using docker"
+            docker run -d --rm  --name ${CTT_DOCKER_NAME} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e "CTT_FAAS_ENABLED=1" -e "OPERA_SSH_USER=ubuntu" -e "OPERA_SSH_IDENTITY_FILE=/tmp/aws-ec2" -p 18080:18080 -v ${PWD}/tmp/awsec2.pem:/tmp/aws-ec2 ${CTT_DOCKER_IMAGE}
+            echo ""
+            echo "Clone the radon-ctt-cli repo"
+            git clone https://github.com/radon-h2020/radon-ctt-cli.git
+            python3 -m venv .venv
+            . .venv/bin/activate
+            echo ""
+            echo "install the requirements"
+            pip install -r radon-ctt-cli/requirements.txt
+            echo ""
+            echo "running ctt_cli.py, execute the test and print the results"
+            python radon-ctt-cli/ctt_cli.py -u ${CTT_SERVER_URL} -c ${CTT_CONFIG_FILE_PATH}
+            echo ""
+            echo "unzip /tmp/results.zip"
+            unzip /tmp/results.zip
+            echo ""
+            echo "execute execution.json"
+            cat execution.json
+            echo ""
+            echo "Stop docker container"
+            docker stop ${CTT_DOCKER_NAME}
+    
+workflows:
+  cloudstash:
+    jobs:
+      - run_CTT
