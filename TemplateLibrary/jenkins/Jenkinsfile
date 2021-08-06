@@ -18,8 +18,19 @@ pipeline {
                     echo $csar_reference
                     echo $csar_version
                     
-                    BEARER_TOKEN=$(curl -X POST https://template-library-radon.xlab.si/api/auth/login -H "accept: */*" -H "Content-Type: application/json" -d "{\"username\":\"$TEMPLATE_LIBRARY_USER\",\"password\":\"$TEMPLATE_LIBRARY_PASS\"}" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
-                    curl -X GET https://template-library-radon.xlab.si/api/templates/$csar_reference/versions/$csar_version/files -H "accept: application/octet-stream" -H "Authorization: Bearer $BEARER_TOKEN" --output blueprint
+                    api="https://template-library-xopera.xlab.si/api"
+                    auth_base_url="https://openid-xopera.xlab.si"
+            
+                    alias cookiecurl="curl -sSL --cookie-jar cookiejar.txt --cookie cookiejar.txt"
+                    response_from_credentials_redirected_to_next_auth="$(cookiecurl $api/users/current)"
+
+                    redirect_url_internal="$(echo $response_from_credentials_redirected_to_next_auth | xmllint --html --xpath "string(//form[@id='kc-form-login']/@action)" - 2>/dev/null)"
+                    redirect_url="$redirect_url_internal"
+
+                    cookiecurl "$redirect_url" -d "username=$your_username" -d "password=$your_password" -d credentialId=""
+                    cookiecurl "$api/auth/consent" -XPOST -d "{\"iAcknowledgePotentialDataLossAndAmAwareOfAllRisks\": true}"
+
+                    cookiecurl -X GET "$api/templates/$csar_reference/versions/$csar_version/templateFile" --output blueprint
                 '''
             }
         }
