@@ -27,7 +27,7 @@ pipeline {
                     redirect_url_internal="$(echo $response_from_credentials_redirected_to_next_auth | xmllint --html --xpath "string(//form[@id='kc-form-login']/@action)" - 2>/dev/null)"
                     redirect_url="$redirect_url_internal"
 
-                    cookiecurl "$redirect_url" -d "username=$your_username" -d "password=$your_password" -d credentialId=""
+                    cookiecurl "$redirect_url" -d "username=$TEMPLATE_LIBRARY_USER" -d "password=$TEMPLATE_LIBRARY_PASS" -d credentialId=""
                     cookiecurl "$api/auth/consent" -XPOST -d "{\"iAcknowledgePotentialDataLossAndAmAwareOfAllRisks\": true}"
 
                     cookiecurl -X GET "$api/templates/$csar_reference/versions/$csar_version/templateFile" --output blueprint
